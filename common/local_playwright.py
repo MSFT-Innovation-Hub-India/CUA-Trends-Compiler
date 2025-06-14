@@ -269,3 +269,17 @@ class LocalPlaywrightComputer:
         if self._page:
             return self._page.url
         return None
+    
+    async def go_back(self):
+        """Navigate back in browser history."""
+        if not self._page:
+            print("Cannot go back, no active page")
+            return False
+        
+        try:
+            await self._page.go_back(wait_until="networkidle", timeout=30000)
+            print("[INFO] Browser back navigation completed")
+            return True
+        except Exception as e:
+            print(f"Browser back navigation failed: {e}")
+            return False

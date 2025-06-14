@@ -55,39 +55,60 @@ async def async_handle_item(item, computer: Computer):
         print(f"Unknown item format: {type(item)}")
         return []
 
-    # Check if the model is asking about saving the form
-    if item_type == "message":  # print messages
-        if hasattr(item, "content") and hasattr(item.content[0], "text"):
-            message_text = item.content[0].text.lower()
-            print(message_text)
-
-            # Check if the model is asking about saving the form
-            if (
-                "save" in message_text
-                or "'save'" in message_text
-                or '"save"' in message_text
-            ):
-                print("Automatically responding 'yes' to save the form")
-                return [
-                    {
-                        "role": "user",
-                        "content": "Yes, please save the form by clicking the save button",
-                    }
-                ]
-
+    # Handle message type items
+    if item_type == "message":
+        # Extract text content from various response formats
+        message_text = ""
+        if hasattr(item, "content") and item.content:
+            for content_item in item.content:
+                if hasattr(content_item, "text"):
+                    message_text = content_item.text
+                    break
         elif isinstance(item, dict) and "content" in item:
-            message_text = (
-                item["content"][0]["text"].lower()
-                if isinstance(item["content"][0]["text"], str)
-                else ""
-            )
-            print(message_text)
+            for content_item in item["content"]:
+                if isinstance(content_item, dict) and "text" in content_item:
+                    message_text = content_item["text"]
+                    break
 
-            # Check if the model is asking about saving the form
+        if message_text:
+            print(f"Message: {message_text}")
+            
+            # Check for coordinate patterns in the text and perform click if found
+            import re
+            coordinate_patterns = [
+                r"'(\d+),(\d+)'",      # 'x,y' format
+                r"(\d+),(\d+)",        # x,y format
+                r"(\d+),\s*(\d+)",     # x, y format (with optional space)
+                r"\((\d+),\s*(\d+)\)", # (x, y) format
+            ]
+            
+            for pattern in coordinate_patterns:
+                match = re.search(pattern, message_text)
+                if match:
+                    try:
+                        x = int(match.group(1))
+                        y = int(match.group(2))
+                        
+                        print(f"Detected coordinates in message: ({x}, {y})")
+                        print(f"Performing click at coordinates ({x}, {y})...")
+                        
+                        # Perform the click using the parsed coordinates
+                        await computer.click(x=x, y=y)
+                        
+                        # Take screenshot after click
+                        result = await computer.screenshot()
+                        return []
+                        
+                    except (ValueError, IndexError) as parse_error:
+                        print(f"Failed to parse coordinates from match: {parse_error}")
+                        continue
+            
+            # Check if the model is asking about saving the form (existing logic)
+            message_lower = message_text.lower()
             if (
-                "save" in message_text
-                or "'save'" in message_text
-                or '"save"' in message_text
+                "save" in message_lower
+                or "'save'" in message_lower
+                or '"save"' in message_lower
             ):
                 print("Automatically responding 'yes' to save the form")
                 return [
@@ -349,28 +370,25 @@ async def compile_trends(user_query: str):
                             input=items,
                             tools=tools,
                             truncation="auto",
-                        )
-                        
-                        # Extract coordinates from the response and perform click action
+                        )                        # Extract coordinates from the response and perform click action
                         if not hasattr(response, 'output') or not response.output:
                             print(f"No output from CUA model for image {i+1}")
                             continue
                         
                         print(f"CUA Response for image {i+1}: {response.output}")
                         
-                        # Process each item in the output to find click actions
+                        # Process each item in the output using the generic handler
                         clicked = False
                         for item in response.output:
-                            # Process computer calls to perform click actions
-                            if (hasattr(item, 'type') and item.type == "computer_call") or \
-                               (isinstance(item, dict) and item.get("type") == "computer_call"):
-                                print(f"Clicking on image {i+1}...")
-                                await async_handle_item(item, computer)
+                            result = await async_handle_item(item, computer)
+                            # Check if a click was performed by looking for coordinate detection in logs
+                            # We'll set clicked=True if async_handle_item processed any item
+                            if item:  # If there was an item to process, assume it was handled
                                 clicked = True
                                 break
                         
                         if not clicked:
-                            print(f"No click action found for image {i+1}, skipping...")
+                            print(f"No valid action found for image {i+1}, skipping...")
                             continue
                         
                         # Wait for the page to load
@@ -425,12 +443,21 @@ async def compile_trends(user_query: str):
                                                 break
                         
                         print(f"Page {i+1} description: {description}")
-                        
-                        # Go back to search results page
+                          # Go back to search results page
                         print(f"Going back to search results from image {i+1}...")
 
+                        # Use Playwright browser back action to navigate back to search results
+                        try:
+                            await computer.go_back()
+                            print("Browser back action completed")
+                        except Exception as back_error:
+                            print(f"Browser back action failed: {back_error}")
+                            # Fallback to Alt+Left if browser back fails
+                            print("Using Alt+Left fallback...")
+                            await computer.press(key="Alt+Left")
                         
-                        # implement a call to the cua model to click on the back button in the browser to go back to the search results page
+                        # Wait for navigation back to search results
+                        await asyncio.sleep(2)
                     
                     
                     print(f"Completed analyzing {max_pages_for_crawling} image links")
