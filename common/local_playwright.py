@@ -121,46 +121,48 @@ class LocalPlaywrightComputer:
             print("Cannot take screenshot, no active page")
             return None
     
-    async def click(self, selector=None, x=None, y=None, button="left"):
-        """Click on an element by selector or by coordinates."""
+    async def click(self, x, y, button="left"):
+        """Click at the specified coordinates."""
         if not self._page:
             print("Cannot click, no active page")
             return False
         
         try:
-            if selector is not None:
-                # Selector-based click
-                await self._page.wait_for_selector(selector, state="visible", timeout=10000)
-                await self._page.click(selector)
-                return True
-            elif x is not None and y is not None:
-                # Coordinate-based click
-                await self._page.mouse.click(x, y, button=button)
-                print(f"Clicked at coordinates ({x}, {y})")
-                return True
-            else:
-                print("Click failed: Must provide either selector or x,y coordinates")
-                return False
+            # Coordinate-based click
+            await self._page.mouse.click(x, y, button=button)
+            print(f"Clicked at coordinates ({x}, {y})")
+            return True
         except Exception as e:
-            if selector:
-                print(f"Click failed for selector '{selector}': {e}")
-                # Try clicking using JavaScript as fallback for selector-based clicks
-                try:
-                    await self._page.evaluate(f"""() => {{
-                        const element = document.querySelector('{selector}');
-                        if (element) {{
-                            element.click();
-                            return true;
-                        }}
-                        return false;
-                    }}""")
-                    print(f"Click attempted using JavaScript fallback for '{selector}'")
-                    return True
-                except Exception as js_error:
-                    print(f"JavaScript click fallback failed: {js_error}")
-                    return False
-            else:
-                print(f"Coordinate-based click failed at ({x}, {y}): {e}")
+            print(f"Coordinate-based click failed at ({x}, {y}): {e}")
+            return False
+    
+    async def click_selector(self, selector, button="left"):
+        """Click on an element by selector."""
+        if not self._page:
+            print("Cannot click, no active page")
+            return False
+        
+        try:
+            # Selector-based click
+            await self._page.wait_for_selector(selector, state="visible", timeout=10000)
+            await self._page.click(selector)
+            return True
+        except Exception as e:
+            print(f"Click failed for selector '{selector}': {e}")
+            # Try clicking using JavaScript as fallback for selector-based clicks
+            try:
+                await self._page.evaluate(f"""() => {{
+                    const element = document.querySelector('{selector}');
+                    if (element) {{
+                        element.click();
+                        return true;
+                    }}
+                    return false;
+                }}""")
+                print(f"Click attempted using JavaScript fallback for '{selector}'")
+                return True
+            except Exception as js_error:
+                print(f"JavaScript click fallback failed: {js_error}")
                 return False
     
     async def type(self, text):

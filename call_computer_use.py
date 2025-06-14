@@ -72,37 +72,38 @@ async def async_handle_item(item, computer: Computer):
 
         if message_text:
             print(f"Message: {message_text}")
-            
+
             # Check for coordinate patterns in the text and perform click if found
             import re
+
             coordinate_patterns = [
-                r"'(\d+),(\d+)'",      # 'x,y' format
-                r"(\d+),(\d+)",        # x,y format
-                r"(\d+),\s*(\d+)",     # x, y format (with optional space)
-                r"\((\d+),\s*(\d+)\)", # (x, y) format
+                r"'(\d+),(\d+)'",  # 'x,y' format
+                r"(\d+),(\d+)",  # x,y format
+                r"(\d+),\s*(\d+)",  # x, y format (with optional space)
+                r"\((\d+),\s*(\d+)\)",  # (x, y) format
             ]
-            
+
             for pattern in coordinate_patterns:
                 match = re.search(pattern, message_text)
                 if match:
                     try:
                         x = int(match.group(1))
                         y = int(match.group(2))
-                        
+
                         print(f"Detected coordinates in message: ({x}, {y})")
                         print(f"Performing click at coordinates ({x}, {y})...")
-                        
+
                         # Perform the click using the parsed coordinates
                         await computer.click(x=x, y=y)
-                        
+
                         # Take screenshot after click
                         result = await computer.screenshot()
                         return []
-                        
+
                     except (ValueError, IndexError) as parse_error:
                         print(f"Failed to parse coordinates from match: {parse_error}")
                         continue
-            
+
             # Check if the model is asking about saving the form (existing logic)
             message_lower = message_text.lower()
             if (
@@ -127,12 +128,17 @@ async def async_handle_item(item, computer: Computer):
             action = item["action"]
             action_type = action["type"]
             action_args = {k: v for k, v in action.items() if k != "type"}
+
         try:
             match action_type:
                 case "click":
-                    # Filter out 'button' parameter as LocalPlaywrightComputer.click() doesn't accept it
-                    click_args = {k: v for k, v in action_args.items() if k != "button"}
-                    await computer.click(**click_args)
+                    # Extract x, y coordinates from action_args
+                    x = action_args.get("x")
+                    y = action_args.get("y")
+                    if x is not None and y is not None:
+                        await computer.click(x, y)
+                    else:
+                        print(f"Click action missing coordinates: {action_args}")
                 case "type":
                     await computer.type(**action_args)
                 case "press":
@@ -190,6 +196,7 @@ async def compile_trends(user_query: str):
         items = []
         state = {"trends compiled": False}
         step = 0
+        image_center_coordinates = []  # Store center coordinates for clicking on images
 
         while not state["trends compiled"]:
             if step == 0:
@@ -259,10 +266,19 @@ async def compile_trends(user_query: str):
                     await asyncio.sleep(1)
                     await computer.press(key="Enter")
                     print("Search initiated, waiting for the results to appear...")
-                    await asyncio.sleep(2)
-                    # CUA-based loop to detect 'Keep' button
+                    await asyncio.sleep(2)  # CUA-based loop to detect 'Keep' button
                     max_checks = 10
-                    user_input = f"Have the search results appeared in this screenshot? Reply only 'yes' or 'no'."
+                    user_input = f"""Have the search results appeared in this screenshot? 
+
+Please respond with:
+1. 'yes' or 'no' to indicate if search results are visible
+2. If yes, provide the rectangle coordinates for each image shown in the search results in the format: [x1,y1,x2,y2] where (x1,y1) is top-left and (x2,y2) is bottom-right
+
+Format your response as:
+Answer: yes/no
+Image coordinates: [[x1,y1,x2,y2], [x1,y1,x2,y2], ...]
+
+If no search results are visible, just respond with 'no'."""
 
                     for i in range(max_checks):
                         items = []
@@ -290,19 +306,22 @@ async def compile_trends(user_query: str):
                             truncation="auto",
                         )
 
+                        print(
+                            "CUA Response for search results present check:",
+                            response.output,
+                        )
+
                         # Access the output from response.output (Responses API format)
                         if not hasattr(response, "output") or not response.output:
                             print("No output from model, continuing...")
-                            continue
-
-                        # Extract the text answer from the response output
-                        answer = ""
+                            continue  # Extract the text answer from the response output
+                        full_response = ""
                         for item in response.output:
                             if hasattr(item, "type") and item.type == "message":
                                 if hasattr(item, "content") and item.content:
                                     for content_item in item.content:
                                         if hasattr(content_item, "text"):
-                                            answer = content_item.text.strip().lower()
+                                            full_response = content_item.text.strip()
                                             break
                             elif (
                                 isinstance(item, dict) and item.get("type") == "message"
@@ -310,20 +329,85 @@ async def compile_trends(user_query: str):
                                 if "content" in item and item["content"]:
                                     for content_item in item["content"]:
                                         if "text" in content_item:
-                                            answer = (
-                                                content_item["text"].strip().lower()
-                                            )
+                                            full_response = content_item["text"].strip()
                                             break
 
-                        if not answer:
+                        if not full_response:
                             print(
                                 "No text response found in model output, continuing..."
                             )
                             continue
-                        if "yes" in answer:
+
+                        # Parse the response for yes/no and coordinates
+                        answer_lower = full_response.lower()
+                        print(f"Full response: {full_response}")
+
+                        if "yes" in answer_lower:
                             print(
-                                "CUA detected search results are visible. Proceeding to click on the first image link."
+                                "CUA detected search results are visible."
+                            )  # Extract image coordinates if present
+                            import re
+
+                            coord_pattern = r"image coordinates:\s*(\[.*\])"
+                            coord_match = re.search(
+                                coord_pattern, full_response, re.IGNORECASE | re.DOTALL
                             )
+
+                            if coord_match:
+                                try:
+                                    coord_text = coord_match.group(1)
+                                    # Parse the coordinates string to extract coordinate arrays
+                                    coord_arrays_pattern = (
+                                        r"\[(\d+),(\d+),(\d+),(\d+)\]"
+                                    )
+                                    coordinates = re.findall(
+                                        coord_arrays_pattern, coord_text
+                                    )
+
+                                    if coordinates:
+                                        print(
+                                            f"Found {len(coordinates)} image coordinates:"
+                                        )
+
+                                        # Store both rectangle coordinates and center points
+                                        image_coordinates = [
+                                            (int(x1), int(y1), int(x2), int(y2))
+                                            for x1, y1, x2, y2 in coordinates
+                                        ]
+                                        image_center_coordinates = []
+
+                                        for idx, (x1, y1, x2, y2) in enumerate(
+                                            coordinates
+                                        ):
+                                            # Calculate center point of each rectangle
+                                            center_x = (int(x1) + int(x2)) // 2
+                                            center_y = (int(y1) + int(y2)) // 2
+                                            image_center_coordinates.append(
+                                                (center_x, center_y)
+                                            )
+                                            print(
+                                                f"  Image {idx+1}: Rectangle [{x1},{y1},{x2},{y2}] -> Center ({center_x},{center_y})"
+                                            )
+
+                                        print(
+                                            f"Stored {len(image_center_coordinates)} center coordinates for clicking"
+                                        )
+                                    else:
+                                        print(
+                                            "No valid coordinate format found in response"
+                                        )
+                                        image_coordinates = []
+                                        image_center_coordinates = []
+                                except Exception as coord_error:
+                                    print(f"Error parsing coordinates: {coord_error}")
+                                    image_coordinates = []
+                                    image_center_coordinates = []
+                            else:
+                                print("No coordinate information found in response")
+                                image_coordinates = []
+                                image_center_coordinates = []
+
+                            print("Proceeding to click on the first image link.")
                             step += 1
                             await asyncio.sleep(2)
                             break
@@ -342,71 +426,51 @@ async def compile_trends(user_query: str):
                 print(
                     "Step 3: Clicking upon the images in the search results now and navigating to the individual pages for trends..."
                 )
-                # i want to perform the following actions for each image link in the search results, upto the first {max_pages_for_crawling} links:
-                try:  # Loop through the first max_pages_for_crawling image links
-                    for i in range(max_pages_for_crawling):
-                        items = []
-                        user_input = f"I need to click on the {i+1}th image in the Pinterest search results grid. Please identify the exact coordinates (x, y) where I should click. Respond with just the coordinates in format 'x,y' (for example: '400,300')."
 
-                        # Get current screenshot for CUA analysis
+                # Check if we have stored coordinates
+                if not image_center_coordinates:
+                    print(
+                        "No image coordinates found from previous step. Cannot proceed with clicking."
+                    )
+                    state["trends compiled"] = True
+                    break  # Limit to max_pages_for_crawling or available coordinates, whichever is smaller
+                num_images_to_process = min(
+                    max_pages_for_crawling, len(image_center_coordinates)
+                )
+                print(
+                    f"Processing {num_images_to_process} images using stored coordinates"
+                )
+
+                try:
+                    # Loop through the stored coordinates and click on each image
+                    for i in range(num_images_to_process):
+                        center_x, center_y = image_center_coordinates[i]
+                        print(
+                            f"Clicking on image {i+1} at coordinates ({center_x}, {center_y})"
+                        )  # Click directly on the stored coordinates
+                        await computer.click(x=center_x, y=center_y)
+
+                        # Wait for the page to load
+                        print(f"Waiting for image {i+1} page to load...")
+                        await asyncio.sleep(3)
+
+                        # Take a screenshot of the loaded page
                         screenshot_bytes = await computer.screenshot()
                         screenshot_base64 = base64.b64encode(screenshot_bytes).decode(
                             "utf-8"
                         )
-                        items.append(
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "input_text", "text": user_input},
-                                    {
-                                        "type": "input_image",
-                                        "image_url": f"data:image/png;base64,{screenshot_base64}",
-                                    },
-                                ],
-                            }
-                        )                        # Ask CUA to identify the coordinates of the next image link
-                        response = client.responses.create(
-                            model=MODEL,
-                            input=items,
-                            tools=tools,
-                            truncation="auto",
-                        )                        # Extract coordinates from the response and perform click action
-                        if not hasattr(response, 'output') or not response.output:
-                            print(f"No output from CUA model for image {i+1}")
-                            continue
-                        
-                        print(f"CUA Response for image {i+1}: {response.output}")
-                        
-                        # Process each item in the output using the generic handler
-                        clicked = False
-                        for item in response.output:
-                            result = await async_handle_item(item, computer)
-                            # Check if a click was performed by looking for coordinate detection in logs
-                            # We'll set clicked=True if async_handle_item processed any item
-                            if item:  # If there was an item to process, assume it was handled
-                                clicked = True
-                                break
-                        
-                        if not clicked:
-                            print(f"No valid action found for image {i+1}, skipping...")
-                            continue
-                        
-                        # Wait for the page to load
-                        print(f"Waiting for image {i+1} page to load...")
-                        await asyncio.sleep(3)
-                        
-                        # Take a screenshot of the loaded page
-                        screenshot_bytes = await computer.screenshot()
-                        screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
                         print(f"Screenshot captured for image {i+1} page")
-                        
-                        # Describe the content of the page
+
+                        # Describe the content of the page using CUA
                         describe_items = []
                         describe_items.append(
                             {
                                 "role": "user",
                                 "content": [
-                                    {"type": "input_text", "text": "Please describe the content of this page in a concise manner, focusing on the trends and fashion elements visible."},
+                                    {
+                                        "type": "input_text",
+                                        "text": "Please describe the content of this page in a concise manner, focusing on the trends and fashion elements visible.",
+                                    },
                                     {
                                         "type": "input_image",
                                         "image_url": f"data:image/png;base64,{screenshot_base64}",
@@ -414,7 +478,7 @@ async def compile_trends(user_query: str):
                                 ],
                             }
                         )
-                        
+
                         # Get description from CUA model
                         describe_response = client.responses.create(
                             model=MODEL,
@@ -422,28 +486,43 @@ async def compile_trends(user_query: str):
                             tools=tools,
                             truncation="auto",
                         )
-                        
-                        print(f"Description response for image {i+1}: {describe_response.output}")
-                        
+
+                        print(
+                            f"Description response for image {i+1}: {describe_response.output}"
+                        )
+
                         # Extract description from response
                         description = ""
-                        if hasattr(describe_response, 'output') and describe_response.output:
+                        if (
+                            hasattr(describe_response, "output")
+                            and describe_response.output
+                        ):
                             for desc_item in describe_response.output:
-                                if hasattr(desc_item, 'type') and desc_item.type == "message":
-                                    if hasattr(desc_item, 'content') and desc_item.content:
+                                if (
+                                    hasattr(desc_item, "type")
+                                    and desc_item.type == "message"
+                                ):
+                                    if (
+                                        hasattr(desc_item, "content")
+                                        and desc_item.content
+                                    ):
                                         for content_item in desc_item.content:
-                                            if hasattr(content_item, 'text'):
+                                            if hasattr(content_item, "text"):
                                                 description = content_item.text
                                                 break
-                                elif isinstance(desc_item, dict) and desc_item.get("type") == "message":
+                                elif (
+                                    isinstance(desc_item, dict)
+                                    and desc_item.get("type") == "message"
+                                ):
                                     if "content" in desc_item and desc_item["content"]:
                                         for content_item in desc_item["content"]:
                                             if "text" in content_item:
                                                 description = content_item["text"]
                                                 break
-                        
+
                         print(f"Page {i+1} description: {description}")
-                          # Go back to search results page
+
+                        # Go back to search results page
                         print(f"Going back to search results from image {i+1}...")
 
                         # Use Playwright browser back action to navigate back to search results
@@ -455,16 +534,16 @@ async def compile_trends(user_query: str):
                             # Fallback to Alt+Left if browser back fails
                             print("Using Alt+Left fallback...")
                             await computer.press(key="Alt+Left")
-                        
-                        # Wait for navigation back to search results
+
+                        # Wait a moment for the page to load before next iteration
                         await asyncio.sleep(2)
-                    
-                    
-                    print(f"Completed analyzing {max_pages_for_crawling} image links")
-                    step += 1  # Move to next step
+
+                    # After processing all images, mark as completed
+                    state["trends compiled"] = True
+                    print("All image pages processed successfully!")
                 except Exception as e:
-                    print(f"Error processing image links: {e}")
-                    step += 1  # Move to next step even if there's an error
+                    print(f"Error during image processing: {e}")
+                    state["trends compiled"] = True
 
         # Final confirmation
         print(
