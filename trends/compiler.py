@@ -19,7 +19,7 @@ class TrendsCompiler:
         self.config = config
         self.ai_client = TrendsAIClient(config)
         self.coordinate_parser = CoordinateParser()
-        self.response_parser = ResponseParser()        # Storage for collected image data
+        self.response_parser = ResponseParser()  # Storage for collected image data
         self.image_analyses = []
 
     async def compile_trends(self, user_query: str) -> str:
@@ -53,7 +53,9 @@ class TrendsCompiler:
                             computer, image_center_coordinates, user_query
                         )
                         # Generate consolidated markdown report
-                        markdown_report = await self._generate_markdown_report(user_query)
+                        markdown_report = await self._generate_markdown_report(
+                            user_query
+                        )
                         print(f"Trends analysis report generated successfully")
                         state["trends_compiled"] = True
                     else:
@@ -211,7 +213,8 @@ If no search results are visible, just respond with 'no'."""
         print(f"Processing {num_images_to_process} images using stored coordinates")
 
         try:
-            for i in range(num_images_to_process):                await self._process_single_image(
+            for i in range(num_images_to_process):
+                await self._process_single_image(
                     computer, image_center_coordinates[i], i + 1, user_query
                 )
 
@@ -237,11 +240,15 @@ If no search results are visible, just respond with 'no'."""
         # Take screenshot and get description
         screenshot_bytes = await computer.screenshot()
         screenshot_base64 = base64.b64encode(screenshot_bytes).decode("utf-8")
-        print(f"Screenshot captured for image {image_num} page")        # Get page description
-        description = await self._get_page_description(screenshot_base64, image_num, user_query)
-        print(f"Page {image_num} description: {description}")        # Go back to search results
+        print(f"Screenshot captured for image {image_num} page")  # Get page description
+        description = await self._get_page_description(
+            screenshot_base64, image_num, user_query
+        )
+        print(
+            f"Page {image_num} description: {description}"
+        )  # Go back to search results
         await self._go_back_to_search_results(computer, image_num)
-        
+
         # Store the image analysis for report generation
         self.image_analyses.append(description)
 
@@ -382,10 +389,10 @@ Please write in an engaging, professional tone suitable for a fashion industry r
     async def _generate_markdown_report(self, user_query: str) -> str:
         """Generate a comprehensive markdown report from collected image analyses."""
         print("Generating comprehensive markdown report...")
-        
+
         if not self.image_analyses:
             return "# Trends Analysis Report\n\nNo trends data collected."
-        
+
         # Create markdown content
         markdown_content = f"""# Trends Analysis Report
 
@@ -396,7 +403,7 @@ Please write in an engaging, professional tone suitable for a fashion industry r
 Based on the analysis of {len(self.image_analyses)} trending images, here are the key findings:
 
 """
-        
+
         # Add detailed analysis for each image
         for i, analysis in enumerate(self.image_analyses, 1):
             markdown_content += f"""## Image {i} Analysis
@@ -407,15 +414,15 @@ Based on the analysis of {len(self.image_analyses)} trending images, here are th
 ---
 
 """
-        
+
         # Add consolidated insights
         markdown_content += """## Key Trend Insights
 
 """
-        
+
         # Extract common themes and trends from all analyses
         all_analysis_text = " ".join(self.image_analyses)
-        
+
         # Generate consolidated insights using AI
         try:
             consolidation_prompt = f"""
@@ -432,21 +439,29 @@ Please identify:
 
 Format your response as clear, actionable insights.
 """
-            
-            insights_response = await self.ai_client.get_response([
-                {"role": "user", "content": consolidation_prompt}
-            ])
-            
-            if insights_response and hasattr(insights_response, 'content'):
-                insights = insights_response.content[0].text if hasattr(insights_response.content[0], 'text') else str(insights_response.content[0])
+
+            insights_response = await self.ai_client.get_response(
+                [{"role": "user", "content": consolidation_prompt}]
+            )
+
+            if insights_response and hasattr(insights_response, "content"):
+                insights = (
+                    insights_response.content[0].text
+                    if hasattr(insights_response.content[0], "text")
+                    else str(insights_response.content[0])
+                )
                 markdown_content += insights
             else:
-                markdown_content += "Unable to generate consolidated insights at this time."
-                
+                markdown_content += (
+                    "Unable to generate consolidated insights at this time."
+                )
+
         except Exception as e:
             print(f"Error generating consolidated insights: {e}")
-            markdown_content += "Unable to generate consolidated insights due to an error."
-        
+            markdown_content += (
+                "Unable to generate consolidated insights due to an error."
+            )
+
         markdown_content += f"""
 
 ## Report Metadata
@@ -458,5 +473,5 @@ Format your response as clear, actionable insights.
 ---
 *Report generated by Trends Compiler using Computer Use Agent and MCP*
 """
-        
+
         return markdown_content
