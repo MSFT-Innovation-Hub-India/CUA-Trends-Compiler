@@ -64,7 +64,7 @@ class TrendsCompiler:
                     state["trends_compiled"] = True
 
             # Final confirmation
-            await self._final_confirmation()
+            # await self._final_confirmation()
 
             return markdown_report
 
@@ -290,23 +290,23 @@ If no search results are visible, just respond with 'no'."""
 
         await asyncio.sleep(2)
 
-    async def _final_confirmation(self) -> None:
-        """Handle final user confirmation."""
-        print(
-            "All steps completed. GitHub Copilot Chat panel is active and 'Agent' is selected."
-        )
-        confirm = (
-            input(
-                "Is there anything else to do? Ok to close the browser and complete? (y/n): "
-            )
-            .strip()
-            .lower()
-        )
+    # async def _final_confirmation(self) -> None:
+    #     """Handle final user confirmation."""
+    #     print(
+    #         "All steps completed. GitHub Copilot Chat panel is active and 'Agent' is selected."
+    #     )
+    #     confirm = (
+    #         input(
+    #             "Is there anything else to do? Ok to close the browser and complete? (y/n): "
+    #         )
+    #         .strip()
+    #         .lower()
+    #     )
 
-        if confirm == "y":
-            print("Closing browser and completing activity.")
-        else:
-            print("Browser will remain open for further actions.")
+    #     if confirm == "y":
+    #         print("Closing browser and completing activity.")
+    #     else:
+    #         print("Browser will remain open for further actions.")
 
     async def _get_detailed_image_analysis(
         self, screenshot_base64: str, trend_statement: str, image_num: int
