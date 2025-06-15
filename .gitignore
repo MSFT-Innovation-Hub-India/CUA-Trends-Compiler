@@ -72,13 +72,7 @@ Desktop.ini
 *.db
 *.log
 
-# Images and other binary files
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.bmp
-*.svg
+
 
 # Ignore data_files and images folders if not needed in repo
 # data_files/
