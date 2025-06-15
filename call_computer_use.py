@@ -28,10 +28,21 @@ async def compile_trends(user_query: str) -> str:
     # Load and validate configuration
     config = TrendsConfig.from_env()
     config.validate()
-    
-    # Create compiler and run analysis
+      # Create compiler and run analysis
     compiler = TrendsCompiler(config)
-    return await compiler.compile_trends(user_query)
+    markdown_report = await compiler.compile_trends(user_query)
+    
+    # Print session summary
+    print("\n=== Trends Compilation Session Summary ===")
+    if markdown_report:
+        print("Trends analysis completed successfully!")
+        print(f"Report length: {len(markdown_report)} characters")
+        print("\n=== Generated Trends Report ===")
+        print(markdown_report)
+    else:
+        print("No trends report generated.")
+    
+    return markdown_report
 
 
 if __name__ == "__main__":
