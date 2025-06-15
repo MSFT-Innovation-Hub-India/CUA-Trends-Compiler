@@ -8,6 +8,7 @@ from trends.app_client import TrendsAppClient
 from trends.config import TrendsConfig
 import json
 import traceback
+from datetime import datetime
 
 load_dotenv()
 
@@ -21,9 +22,13 @@ available_functions = {
     "compile_trends": compile_trends,
 }
 
-instructions = """
+# Get current date in ddmmyy format
+current_date = datetime.now().strftime("%d%m%y")
+
+instructions = f"""
 Step1: You will help the user to explore various trends in fashion by using the computer use agent. The user will provide a query, and you will compile the trends based on that query, in a Markdown document format.
-Step2: You will then prompt the user to store the trends report in an Azure Blob Storage location, so that it can be referred to or shared with others. You will use the MCP Server provided as a tool, to perform this action.
+Step2: You will then prompt the user to store the trends report in an Azure Blob Storage location, so that it can be referred to or shared with others. You will use the MCP Server provided as a tool, to perform this action. provide a suitable name for the blob and suffix it with the current date in ddmmyy format. For example: {current_date}
+    - when the user asks for the list of containers, and when you display the response, show the values as comma separated container name values for readability.
 Note that step2 can be performed only after step1 is completed successfully.
 
 IMPORTANT: Maintain context of previously generated reports in this conversation. If a user asks to store a report, use the report that was previously generated in this conversation session. If no report has been generated yet, ask the user to provide a query first.
@@ -52,7 +57,6 @@ async def main() -> str:
         input_messages = conversation_history.copy()
 
         try:
-            print(f"=== Trend Search Computer Use Agent ===")
             print(f"Query: {user_query}")
             print(f"Conversation history length: {len(conversation_history)}")
             print(f"Generated reports count: {len(generated_reports)}")
@@ -118,6 +122,7 @@ async def main() -> str:
 
                 else:
                     # Regular text response or other output types
+                    print(f"=== Tool call output ===")
                     print(f"Assistant response: {output}")
                     conversation_history.append(
                         {

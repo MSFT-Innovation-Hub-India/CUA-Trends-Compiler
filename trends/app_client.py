@@ -24,6 +24,7 @@ class TrendsAppClient(TrendsAIClient):
                 "server_label": "azure-storage-mcp-server",
                 "server_url": mcp_server_url,
                 "require_approval": "never",
+                "allowed_tools": ["create_container", "list_containers","upload_blob"],
             }
         ]
 

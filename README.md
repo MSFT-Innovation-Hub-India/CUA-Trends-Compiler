@@ -1,407 +1,458 @@
-# Trends Compiler AI Assistant
+# Fashion Trends Compiler Agent with Azure OpenAI Responses API
 
-An intelligent trends exploration and compilation system that uses Azure OpenAI's Responses API with Computer Use capabilities and Playwright automation to systematically explore and compile trend information from Pinterest.
+An intelligent AI-powered system that uses Azure OpenAI's Computer Use (CUA) capabilities to automatically explore, analyze, and compile fashion trends from Pinterest. The system uses browser automation to navigate Pinterest, analyze images, extract content, and generate comprehensive markdown reports, with optional Azure Blob Storage integration via Model Context Protocol (MCP). The Responses API in Azure openAI provides turnkey tool action support for CUA model and MCP Server integration. Azure AI Foundry provides the ability to provision the Models in Azure openAI along with the SDK support for Responses API.
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **AI-Powered Automation**: Uses Azure OpenAI's Computer Use capabilities to navigate websites autonomously
-- **Trend Exploration**: Systematically searches and analyzes trend items on Pinterest
-- **Image Analysis**: Detailed analysis of visual trends, colors, patterns, and design elements
-- **Content Extraction**: Automatically clicks "Read more" links to get complete content
-- **Markdown Compilation**: Organizes findings into well-structured markdown reports
-- **Azure Blob Storage Integration**: Saves compiled reports to Azure Blob Storage using MCP
-- **Real-time Progress Tracking**: Live updates during the exploration process
-- **Interactive UI**: User-friendly Streamlit interface
+- **🤖 AI-Powered Browser Automation**: Uses Azure OpenAI's Computer Use capabilities to autonomously navigate Pinterest
+- **🎯 Intelligent Trend Discovery**: Systematically searches and analyzes fashion trend items
+- **🎨 Advanced Image Analysis**: Detailed analysis of visual trends, colors, patterns, and design elements
+- **📝 Smart Content Extraction**: Automatically extracts descriptions and expands "Read more" content
+- **📊 Markdown Report Generation**: Organizes findings into well-structured, professional markdown reports
+- **☁️ Azure Blob Storage Integration**: Saves compiled reports to Azure Blob Storage using MCP server
+- **📈 Real-time Progress Tracking**: Live updates during the exploration process
+- **💬 Interactive CLI Interface**: User-friendly command-line interface with conversation flow
 
-## 🏗️ Architecture
-
-The system consists of several key components:
+## 🏗️ System Architecture
 
 ### Core Components
 
-1. **`trends_crawler.py`**: Main automation engine using Azure OpenAI Responses API
-2. **`streamlit_app.py`**: Web interface for user interaction
-3. **`common/`**: Shared utilities for computer automation
-   - `local_playwright.py`: Playwright browser automation
-   - `computer.py`: Computer use interface
-   - `utils.py`: Utility functions
+```
+trends-compiler-cua-mcp/
+├── app.py                     # Main CLI application entry point
+├── call_computer_use.py       # Trends compilation orchestrator
+├── requirements.txt           # Python dependencies
+├── .env                       # Environment configuration (create from template)
+├── trends/                    # Core trends analysis module
+│   ├── __init__.py
+│   ├── app_client.py          # Azure OpenAI Responses API client
+│   ├── compiler.py            # Main trends compilation engine
+│   ├── config.py              # Configuration management
+│   ├── ai_client.py           # AI interaction layer
+│   ├── action_handler.py      # Computer action execution
+│   └── parsers.py             # Response and coordinate parsing
+└── common/                    # Shared automation utilities
+    ├── __init__.py
+    ├── computer.py            # Computer use interface protocol
+    ├── local_playwright.py    # Playwright browser automation
+    └── utils.py               # Utility functions
+```
 
 ### Integration Points
 
-- **Azure OpenAI Responses API**: For AI-driven automation
-- **Model Context Protocol (MCP)**: For Azure Blob Storage operations
-- **Playwright**: For web browser automation
-- **Streamlit**: For the user interface
+- **Azure OpenAI Responses API**: Powers AI-driven browser automation and analysis
+- **Model Context Protocol (MCP)**: Enables Azure Blob Storage operations
+- **Playwright**: Provides robust web browser automation
+- **Pinterest Website**: Target platform for fashion trends discovery
+
+### Architecture of the Solution
+
+The Trends Compiler Agent is a sophisticated command-line application that combines Azure OpenAI's Computer Use capabilities with browser automation to autonomously discover and analyze fashion trends. Built on the Azure OpenAI Responses API, it provides seamless integration with Computer Use models, advanced image reasoning, and Remote Model Context Protocol (MCP) for cloud storage operations.
+
+#### 🎯 Core Architecture Overview
+
+The solution operates as a locally-hosted intelligent agent that leverages:
+- **Azure OpenAI Responses API** for AI-driven decision making and content analysis
+- **Computer Use (CUA) Model** for visual understanding and browser interaction planning
+- **Playwright Browser Automation** for precise web navigation and interaction
+- **Remote MCP Integration** for seamless Azure Blob Storage operations
+
+#### 🔄 Workflow Process
+
+The agent follows a sophisticated multi-stage process to compile comprehensive trend reports:
+
+##### **1. Initial Setup & Navigation**
+- **Target Loading**: Navigates to the configured Pinterest URL and waits for complete page rendering
+- **Interface Recognition**: Uses Computer Use capabilities to identify and locate the search interface elements
+- **Query Input**: Employs Playwright to interact with the search box and submit user queries
+
+##### **2. Search Results Processing**
+- **Results Detection**: Computer Use model analyzes the page to determine when search results are fully loaded
+- **Image Identification**: Identifies and maps coordinates of all trend images displayed in search results
+- **Bounding Box Analysis**: Calculates precise center coordinates for each image for automated interaction
+
+##### **3. Content Analysis Loop**
+For each identified trend image, the system:
+- **🖱️ Automated Navigation**: Playwright clicks on calculated center coordinates to access detailed views
+- **📸 Content Capture**: Takes high-resolution screenshots of detailed trend pages
+- **🧠 AI Analysis**: Leverages Azure OpenAI's vision capabilities to analyze fashion elements, colors, patterns, and trends
+- **📝 Content Extraction**: Extracts and processes textual descriptions and metadata
+- **🔄 Iteration**: Repeats process for all identified trend items
+
+##### **4. Report Compilation & Storage**
+- **📊 Content Consolidation**: Aggregates all analyzed content into a structured markdown report
+- **✅ Completion Notification**: Provides real-time progress updates and completion status
+- **☁️ Cloud Storage**: Integrates with Azure Blob Storage via Remote MCP for report persistence
+- **📁 Container Management**: Automatically manages storage containers and blob organization
+
+#### 🏗️ Technical Implementation Details
+
+##### **Computer Use Integration**
+The system leverages Computer Use capabilities for:
+- **Visual Understanding**: Analyzing webpage layouts and identifying interactive elements
+- **Coordinate Mapping**: Providing precise pixel coordinates for Playwright automation
+- **Content Recognition**: Understanding when pages have loaded and content is ready for interaction
+
+##### **Playwright Automation**
+Browser automation handles:
+- **Precise Interactions**: Click, type, and navigation actions based on CUA coordinates
+- **Page Management**: Loading states, screenshot capture, and session management
+- **Headless Operation**: Runs without user interface for automated processing
+
+##### **Remote MCP Architecture**
+Storage operations are handled via:
+- **Direct API Integration**: MCP calls are made directly from the Responses API
+- **Turnkey Tool Support**: No relay logic required in the agent application
+- **Seamless Storage**: Automatic container creation and blob management
+
+#### 📋 Important Implementation Notes
+
+> **🎯 Pinterest Interaction Strategy**: Pinterest's search results display images with hover-based URL revelation. The solution elegantly addresses this by using Computer Use to identify image bounding boxes and calculating center coordinates for direct click interactions, eliminating the need for complex hover-based navigation.
+
+> **🔄 MCP Integration Advantage**: The Remote MCP integration operates directly through the Responses API's turnkey tool calling support, providing a more streamlined architecture compared to traditional function calling patterns that require application-level relay logic.
+
+> **🧠 Model Specialization**: For image reasoning and fashion trend analysis, the GPT-4o model is utilized instead of the Computer Use model. This is because the Computer Use model is specifically tailored for visual layout understanding, menu navigation, and UI interaction tasks, while GPT-4o excels at content analysis, image interpretation, and semantic understanding of fashion elements.
+
+#### 🎨 Architecture Diagram
+
+The following diagram illustrates the complete data flow and component interactions:
+
+![alt text](./images/image.png)
+
 
 ## 📋 Prerequisites
 
-- Python 3.8+
-- Azure OpenAI subscription with Computer Use model access
-- Azure Storage Account (for MCP integration)
-- MCP Server setup for Azure Blob Storage
+Before setting up the application, ensure you have:
 
-## 🛠️ Installation
+### Essential Requirements
 
-1. **Clone the repository**:
-```bash
+1. **Python 3.8 or higher** installed on your system
+2. **Azure OpenAI subscription** with Computer Use model access (Computer Use Preview)
+3. **Azure CLI** installed and configured (for authentication)
+4. **Azure Storage Account** (optional, for saving reports to blob storage)
+5. **MCP Server** running (optional, for Azure Blob Storage integration)
+6. **Internet connection** for Pinterest access and Azure API calls
+
+### Azure OpenAI Model Requirements
+
+- **Computer Use Model**: Required for browser automation (e.g., `computer-use-preview`)
+- **Vision Model**: For image analysis (e.g., `gpt-4o`)
+- **API Version**: Must support Computer Use (e.g., `2025-03-01-preview`)
+
+### System Requirements
+
+- **Operating System**: Windows, macOS, or Linux
+- **Memory**: Minimum 4GB RAM (8GB+ recommended for better performance)
+- **Disk Space**: At least 1GB free space for dependencies and browser installations
+- **Display**: Minimum 1024x768 resolution (required for browser automation)
+
+## 🛠️ Installation & Setup
+
+### Step 1: Clone and Setup Project
+
+```powershell
+# Clone the repository
 git clone <repository-url>
 cd trends-compiler-cua-mcp
-```
 
-2. **Install dependencies**:
-```bash
+# Create a virtual environment (recommended)
+python -m venv venv
+.\venv\Scripts\Activate.ps1  # On Windows PowerShell
+# source venv/bin/activate    # On macOS/Linux
+
+# Install Python dependencies
 pip install -r requirements.txt
 ```
 
-3. **Install Playwright browsers**:
-```bash
+### Step 2: Install Playwright Browsers
+
+**⚠️ Critical Step**: This must be done before running the application.
+
+```powershell
+# Install all Playwright browsers (recommended)
 playwright install
+
+# Or install only Chromium (minimum requirement)
+playwright install chromium
 ```
 
-4. **Configure environment variables**:
-Copy `.env.sample` to `.env` and update with your values:
-```bash
-cp .env.sample .env
+### Step 3: Azure CLI Authentication
+
+```powershell
+# Login to Azure (required for Azure OpenAI access)
+az login
+
+# Verify your subscription (optional)
+az account show
 ```
 
-Edit `.env`:
+### Step 4: Environment Configuration
+
+Create a `.env` file in the project root with the following configuration:
+
 ```env
-# Azure OpenAI Configuration
+# ==========================================
+# Azure OpenAI Configuration (REQUIRED)
+# ==========================================
 AZURE_OPENAI_ENDPOINT=https://your-openai-resource.openai.azure.com/
-MODEL_NAME=your-computer-use-model-name
-MODEL_NAME2=your-regular-model-name
-AZURE_API_VERSION=2024-12-01-preview
+MODEL_NAME=computer-use-preview
+AZURE_API_VERSION=2025-03-01-preview
+VISION_MODEL_NAME=gpt-4o
 
-# Web Scraping URL (Pinterest)
-web_crawl_url=https://www.pinterest.com
+# ==========================================
+# Application Configuration
+# ==========================================
+web_crawl_url=https://in.pinterest.com/ideas
+max_pages_for_crawling=5
 
-# MCP Server Configuration
+# ==========================================
+# MCP Server Configuration (OPTIONAL)
+# ==========================================
 MCP_SERVER_URL=http://localhost:3000
+```
+
+**Configuration Details:**
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `AZURE_OPENAI_ENDPOINT` | Your Azure OpenAI resource endpoint URL | ✅ Yes | - |
+| `MODEL_NAME` | Computer Use enabled model name | ✅ Yes | `computer-use-preview` |
+| `AZURE_API_VERSION` | API version supporting Computer Use | ✅ Yes | `2025-03-01-preview` |
+| `VISION_MODEL_NAME` | Model for image analysis | ✅ Yes | `gpt-4o` |
+| `web_crawl_url` | Pinterest starting URL | ❌ No | `https://in.pinterest.com/ideas` |
+| `max_pages_for_crawling` | Maximum trend items to analyze | ❌ No | `5` |
+| `MCP_SERVER_URL` | MCP server URL for blob storage | ❌ No | - |
+
+### Step 5: MCP Server Setup (Optional)
+
+If you want to save reports to Azure Blob Storage, ensure your MCP server is running and supports these tools:
+- `list_containers`: List available storage containers
+- `upload_blob`: Upload content to blob storage
+- `list_blobs`: List blobs in containers
+
+In the demo of this sample application, the MCP Server is hosted in Azure Container Apps. The source code for the MCP Server is available in this GitHub Repo [here](https://github.com/MSFT-Innovation-Hub-India/MCP-Az-storage-Svc-Sample)
+
+**Start your MCP server before running the application:**
+```powershell
+# Example - adjust based on your MCP server setup
+# The MCP server should be running on the URL specified in MCP_SERVER_URL
 ```
 
 ## 🚀 Usage
 
-### Starting the Application
+### Running the Application
 
-1. **Start the MCP Server** (if using Azure Blob Storage):
-```bash
-# Follow your MCP server setup instructions
+Start the application using the command line interface:
+
+```powershell
+python app.py
 ```
 
-2. **Run the Streamlit app**:
-```bash
-streamlit run streamlit_app.py
+### Interactive Workflow
+
+1. **Enter Fashion Query**: When prompted, enter your fashion trend query
+   ```
+   Enter your query for fashion trends:-> sustainable summer fashion 2024
+   ```
+
+2. **AI Automation Begins**: The system will:
+   - Launch a browser window (visible for monitoring)
+   - Navigate to Pinterest
+   - Search for your query
+   - Systematically analyze trend items
+   - Extract images, descriptions, and insights
+
+3. **Report Generation**: View the compiled markdown report in the console
+
+4. **Storage Options**: Choose to save the report to Azure Blob Storage
+   - The system will list available containers
+   - Select a container or create a new one
+   - Reports are saved with date suffixes (e.g., `sustainable-fashion-report-150625.md`)
+
+### Example Queries
+
+```
+Enter your query for fashion trends:-> minimalist wardrobe essentials
+Enter your query for fashion trends:-> Korean street fashion
+Enter your query for fashion trends:-> eco-friendly formal wear
+Enter your query for fashion trends:-> vintage denim trends
+Enter your query for fashion trends:-> luxury handbag trends 2024
 ```
 
-3. **Open your browser** and navigate to `http://localhost:8501`
+### How the System Works
 
-### Using the Interface
+The application follows this intelligent workflow:
 
-1. **Enter a trend topic** (e.g., "sustainable fashion", "minimalist design")
-2. **Set the number of items** to analyze (1-10)
-3. **Click "Start Trend Exploration"** to begin AI automation
-4. **Monitor progress** in real-time
-5. **Review compiled trends** once complete
-6. **Save to Azure Blob Storage** by selecting a container
-
-### How It Works
-
-The system follows this workflow:
-
-1. **Navigation**: AI navigates to Pinterest using computer use
-2. **Search**: Finds and uses the search bar to look for your trend topic
-3. **Systematic Analysis**: For each trend item:
-   - Clicks on the item to open detail page
-   - Analyzes images for visual trends and design elements
-   - Extracts text descriptions
-   - Clicks "Read more" links for complete content
-   - Compiles information with clear formatting
+1. **🌐 Browser Launch**: Opens Chromium browser with Pinterest
+2. **🔍 Smart Search**: AI navigates to search and enters your query
+3. **📍 Coordinate Detection**: Identifies clickable trend item coordinates
+4. **🎯 Systematic Analysis**: For each trend item:
+   - Clicks on the item to open detail view
+   - Captures and analyzes images for visual trends
+   - Extracts text descriptions and metadata
+   - Expands "Read more" content when available
+   - Compiles comprehensive trend insights
    - Returns to search results for next item
-4. **Compilation**: Organizes all findings into a structured markdown report
-5. **Storage**: Optionally saves the report to Azure Blob Storage
+5. **📝 Report Compilation**: Organizes all findings into structured markdown
+6. **☁️ Storage Integration**: Optionally saves to Azure Blob Storage
 
 ## 📊 Output Format
 
-Each trend item is compiled with this structure:
+Generated reports follow this comprehensive structure:
 
 ```markdown
-## Trend Item [Number]: [Descriptive Title]
+# Fashion Trends Report: [Your Query]
+*Generated on [Date] using AI Computer Use Agent*
 
-### Visual Analysis
-[Detailed description of images/visuals, colors, patterns, styles]
+## Executive Summary
+[Brief overview of discovered trends]
 
-### Description
-[Text content and descriptions found on the page]
+## Trend Analysis
 
-### Key Trend Insights
-[AI analysis of what trends this represents]
+### Trend Item 1: [Descriptive Title]
+
+#### Visual Analysis
+- **Primary Colors**: [Color palette analysis]
+- **Style Elements**: [Design patterns, textures, cuts]
+- **Aesthetic Theme**: [Overall visual impression]
+
+#### Description
+[Extracted text content and descriptions]
+
+#### Trend Insights
+- **Category**: [Fashion category]
+- **Season Relevance**: [Seasonal applicability]
+- **Target Demographic**: [Audience analysis]
+- **Key Trend Indicators**: [What makes this trending]
 
 ---
+
+### Trend Item 2: [Next trend analysis...]
+[Continues for all analyzed items]
+
+## Trend Summary
+[Overall insights and patterns across all analyzed items]
 ```
 
-## 🔧 Configuration
+## 🔧 Advanced Configuration
 
-### Azure OpenAI Models
+### Browser Automation Settings
 
-- **Computer Use Model**: Required for web automation (e.g., `gpt-4o-computer-use-preview`)
-- **Regular Model**: For text processing and analysis
-
-### MCP Server Setup
-
-The system uses Model Context Protocol for Azure Blob Storage operations. Ensure your MCP server supports:
-- `list_containers`: List available storage containers
-- `upload_blob`: Upload content to blob storage
-
-### Playwright Configuration
-
-The system uses Playwright for browser automation:
-- Runs in non-headless mode for debugging
-- Display size: 1024x768
-- Supports safety checks and URL validation
-
-## 🛡️ Safety Features
-
-- **URL Validation**: Checks against blocklisted URLs
-- **Safety Checks**: Automated acknowledgment for safe trend exploration
-- **Error Handling**: Robust error handling throughout the automation process
-- **Progress Tracking**: Real-time monitoring of the exploration process
-
-## 📁 Project Structure
-
-```
-trends-compiler-cua-mcp/
-├── streamlit_app.py           # Main UI application
-├── trends_crawler.py          # Core automation engine
-├── requirements.txt           # Python dependencies
-├── .env.sample               # Environment variables template
-├── # Trends Compiler - Computer Use Agent (CUA) with Azure OpenAI
-
-This application uses Azure OpenAI's Computer Use Ability (CUA) model to automatically search for and analyze latest trends on any topic by controlling a web browser.
-
-## Features
-
-- **Automated Browser Control**: Uses Playwright to control a Chromium browser
-- **AI-Powered Navigation**: Leverages Azure OpenAI's CUA model to intelligently navigate web pages
-- **Trend Analysis**: Searches for and analyzes image-based trend content
-- **Secure Authentication**: Uses Azure Managed Identity for secure API access
-- **Configurable**: Customizable search parameters and crawling limits
-
-## Prerequisites
-
-1. **Azure OpenAI Resource** with Computer Use Ability (CUA) enabled
-2. **Python 3.8+**
-3. **Playwright** browser dependencies
-
-## Setup
-
-### 1. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Install Playwright Browsers
-
-```bash
-playwright install chromium
-```
-
-### 3. Configure Environment Variables
-
-Copy `.env.example` to `.env` and update with your Azure OpenAI details:
-
-```bash
-cp .env.example .env
-```
-
-Update the following variables in `.env`:
-- `AZURE_OPENAI_ENDPOINT`: Your Azure OpenAI resource endpoint
-- `MODEL_NAME`: Your CUA-enabled model name (e.g., `gpt-4o-with-canvas`)
-- `AZURE_API_VERSION`: API version that supports CUA (e.g., `2024-12-01-preview`)
-
-### 4. Azure Authentication
-
-This application uses Azure Managed Identity for authentication. Ensure you're logged in with Azure CLI:
-
-```bash
-az login
-```
-
-## Usage
-
-Run the application with a search query:
-
-```bash
-python app.py --query "AI trends 2024"
-```
-
-### Command Line Options
-
-- `--query` or `-q`: The search query for trends (required)
-
-### Example Commands
-
-```bash
-# Search for AI trends
-python app.py --query "artificial intelligence trends 2024"
-
-# Search for fashion trends
-python app.py --query "fashion trends spring 2024"
-
-# Search for technology trends
-python app.py --query "emerging technology trends"
-```
-
-## How It Works
-
-1. **Browser Launch**: Opens a Chromium browser using Playwright
-2. **Initial Navigation**: Navigates to the configured search engine (default: Google)
-3. **AI-Powered Search**: Uses Azure OpenAI CUA model to:
-   - Identify the search box
-   - Type the user's query
-   - Press Enter to search
-4. **Image Analysis**: For each of the first N image results (configurable):
-   - Clicks on the image link
-   - Analyzes and describes the content
-   - Navigates back to search results
-   - Proceeds to the next image
-5. **Completion**: Returns control after processing all specified images
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint | - | Yes |
-| `MODEL_NAME` | CUA-enabled model name | - | Yes |
-| `AZURE_API_VERSION` | API version supporting CUA | - | Yes |
-| `web_crawl_url` | Starting URL for searches | https://www.google.com | No |
-| `max_pages_for_crawling` | Max number of image pages to visit | 3 | No |
+The system uses these Playwright configurations:
+- **Browser**: Chromium (most compatible)
+- **Headless Mode**: Disabled (allows monitoring)
+- **Viewport**: 1024x768 pixels
+- **Timeout**: 30 seconds for page loads
+- **Safety Checks**: Enabled with user prompts
 
 ### Computer Use Model Instructions
 
-The application includes comprehensive instructions for the AI agent:
+The AI agent operates with these capabilities:
+- **Screenshot Analysis**: Takes and analyzes page screenshots
+- **Click Actions**: Precise coordinate-based clicking
+- **Keyboard Input**: Text entry and navigation
+- **Scroll Operations**: Page navigation and content discovery
+- **Element Recognition**: Intelligent UI element identification
 
-- Browser control capabilities (keyboard, mouse, screenshots)
-- Task-specific guidance for trend searching
-- Step-by-step process for image link analysis
-- Completion criteria and control handover
+### Performance Tuning
 
-## Architecture
+Adjust these settings in your `.env` file:
+```env
+# Increase for more comprehensive analysis (slower)
+max_pages_for_crawling=10
 
-```
-app.py                          # Main application entry point
-├── LocalPlaywrightComputer     # Browser automation interface
-├── Azure OpenAI CUA Client     # AI model integration
-└── Computer Action Executor    # Action parsing and execution
-
-common/
-├── computer.py                 # Computer interface protocol
-├── local_playwright.py         # Playwright implementation
-└── utils.py                    # Utility functions
+# Modify Pinterest starting point
+web_crawl_url=https://in.pinterest.com/ideas
 ```
 
-## Security Features
+## 🛡️ Safety & Security Features
 
-- **Managed Identity Authentication**: No hardcoded credentials
-- **Secure Token Management**: Uses Azure credential providers
-- **Browser Security**: Configured with appropriate security settings
-- **Error Handling**: Comprehensive exception handling and logging
+### Built-in Safety Measures
 
-## Troubleshooting
+- **🔒 URL Validation**: Prevents navigation to blocked or unsafe URLs
+- **⚠️ Safety Prompts**: User confirmation for potentially sensitive actions
+- **🔐 Secure Authentication**: Uses Azure Managed Identity (no hardcoded credentials)
+- **🛡️ Error Boundaries**: Comprehensive error handling and recovery
+- **📝 Activity Logging**: Detailed logging of all AI actions and decisions
 
-### Common Issues
-
-1. **Browser Launch Failed**
-   - Ensure Playwright browsers are installed: `playwright install chromium`
-   - Check system dependencies for Chromium
-
-2. **Authentication Errors**
-   - Verify Azure CLI login: `az login`
-   - Check Azure OpenAI resource permissions
-
-3. **Model Errors**
-   - Ensure your model supports Computer Use Ability (CUA)
-   - Verify the API version supports CUA features
-
-4. **Screenshot Issues**
-   - Check display settings and screen resolution
-   - Ensure adequate system memory for browser operations
-
-### Debugging
-
-Enable verbose logging by setting environment variables:
-
-```bash
-export DEBUG=1
-export PLAYWRIGHT_DEBUG=1
-```
-
-## Limitations
-
-- Maximum 10 iterations per session (configurable via `ITERATIONS`)
-- Requires internet connection for web searching
-- Browser automation may be affected by website changes
-- CUA model responses depend on screenshot quality
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Implement changes with proper error handling
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues related to:
-- **Azure OpenAI**: Check Azure OpenAI documentation
-- **Playwright**: See Playwright documentation
-- **Application**: Open an issue in this repository                 # This file
-└── common/                   # Shared utilities
-    ├── __init__.py
-    ├── computer.py           # Computer use interface
-    ├── local_playwright.py   # Playwright automation
-    └── utils.py              # Utility functions
-```
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Common Issues and Solutions
 
-1. **Authentication Errors**: Ensure Azure credentials are properly configured
-2. **Model Access**: Verify access to Computer Use preview models
-3. **MCP Connection**: Check MCP server is running and accessible
-4. **Playwright Issues**: Run `playwright install` to ensure browsers are installed
+#### 1. **Playwright Installation Failed**
+```powershell
+# Solution: Install Playwright with system dependencies
+playwright install --with-deps chromium
+```
+
+#### 2. **Azure Authentication Errors**
+```powershell
+# Solution: Re-authenticate with Azure CLI
+az login --scope https://cognitiveservices.azure.com/.default
+az account set --subscription "Your-Subscription-ID"
+```
+
+#### 3. **Computer Use Model Access Denied**
+- ✅ Verify your Azure OpenAI resource has Computer Use preview enabled
+- ✅ Check your model deployment name matches `MODEL_NAME` in `.env`
+- ✅ Ensure API version supports Computer Use features
+
+#### 4. **Browser Automation Issues**
+```powershell
+# Solution: Clear browser data and reinstall
+playwright uninstall chromium
+playwright install chromium
+```
+
+#### 5. **MCP Server Connection Failed**
+- ✅ Verify MCP server is running on the specified URL
+- ✅ Check firewall settings allow connection to MCP_SERVER_URL
+- ✅ Test MCP server endpoints manually
+
 
 ### Debug Mode
 
-The system includes detailed logging:
-- AI messages and responses
-- Computer actions being executed
-- Screenshot capture confirmations
-- Error messages with stack traces
+Enable verbose logging for troubleshooting:
 
-## 🤝 Contributing
+```powershell
+# Set environment variables for detailed logging
+$env:DEBUG="1"
+$env:PLAYWRIGHT_DEBUG="1"
+python app.py
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### Performance Issues
 
-## 📄 License
+If the application runs slowly:
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+1. **Reduce Analysis Scope**:
+   ```env
+   max_pages_for_crawling=3
+   ```
 
-## 🙏 Acknowledgments
+2. **Check System Resources**:
+   - Close unnecessary browser windows
+   - Ensure sufficient RAM (8GB+ recommended)
+   - Close other heavy applications
 
-- Azure OpenAI team for Computer Use capabilities
-- Playwright team for browser automation
-- Streamlit team for the excellent UI framework
-- Model Context Protocol for seamless integrations
+3. **Network Optimization**:
+   - Use stable internet connection
+   - Consider using ethernet over Wi-Fi
+
+## 📈 Advanced Usage Tips
+
+### Optimizing Query Results
+
+**Best Practices for Queries**:
+- ✅ Be specific: "Korean street fashion spring 2024" vs. "fashion"
+- ✅ Include context: "sustainable office wear for women"
+- ✅ Use current terms: "Y2K revival trends" vs. "retro fashion"
+- ✅ Specify demographics: "teen summer fashion" vs. "summer fashion"
+
+
+### Report Management
+
+Reports are saved with timestamps to avoid conflicts:
+- Format: `{query-slug}-{DDMMYY}.md`
+- Example: `korean-street-fashion-150625.md`

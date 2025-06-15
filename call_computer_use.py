@@ -30,6 +30,7 @@ async def compile_trends(user_query: str) -> str:
     config.validate()
       # Create compiler and run analysis
     compiler = TrendsCompiler(config)
+    print(f"=== Performing Trend Search using Computer Use Agent ===")
     markdown_report = await compiler.compile_trends(user_query)
     
     # Print session summary
