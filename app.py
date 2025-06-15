@@ -4,27 +4,19 @@ import sys
 from call_computer_use import compile_trends
 import os
 from dotenv import load_dotenv
-from openai import AzureOpenAI
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from trends.app_client import TrendsAppClient
+from trends.config import TrendsConfig
 import json
 import traceback
 
 load_dotenv()
 
-mcp_server_url = os.getenv("MCP_SERVER_URL")
-azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-azure_openai_api_version = os.getenv("AZURE_API_VERSION")
-vision_model_name = os.getenv("VISION_MODEL_NAME", "gpt-4o")
+# Load configuration
+config = TrendsConfig.from_env()
+config.validate()
 
-token_provider = get_bearer_token_provider(
-    DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-)
-
-client = AzureOpenAI(
-    base_url=f"{azure_endpoint}/openai/v1/",
-    azure_ad_token_provider=token_provider,
-    api_version="preview",
-)
+# Create the AI client
+ai_client = TrendsAppClient(config)
 available_functions = {
     "compile_trends": compile_trends,
 }
@@ -36,30 +28,6 @@ Note that step2 can be performed only after step1 is completed successfully.
 
 IMPORTANT: Maintain context of previously generated reports in this conversation. If a user asks to store a report, use the report that was previously generated in this conversation session. If no report has been generated yet, ask the user to provide a query first.
 """
-
-tools_list = [
-    {
-        "type": "mcp",
-        "server_label": "azure-storage-mcp-server",
-        "server_url": mcp_server_url,
-        "require_approval": "never",
-    },
-    {
-        "type": "function",
-        "name": "compile_trends",
-        "description": "compile fashion trends from user query",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "user_query": {
-                    "type": "string",
-                    "description": "The user query to compile fashion trends",
-                },
-            },
-            "required": ["user_query"],
-        },
-    },
-]
 
 
 async def main() -> str:
@@ -79,7 +47,8 @@ async def main() -> str:
                 {"type": "input_text", "text": user_query},
             ],
         }
-        conversation_history.append(new_user_message)        # Use the full conversation history as input messages
+        conversation_history.append(new_user_message)
+        # Use the full conversation history as input messages
         input_messages = conversation_history.copy()
 
         try:
@@ -87,18 +56,17 @@ async def main() -> str:
             print(f"Query: {user_query}")
             print(f"Conversation history length: {len(conversation_history)}")
             print(f"Generated reports count: {len(generated_reports)}")
-            
-            # Call the Responses API with the current state
-            response = client.responses.create(
-                model=vision_model_name,
+
+            # Call the Responses API with the current state using the modular client
+            response = ai_client.create_app_response(
                 instructions=instructions,
-                input=conversation_history,
-                tools=tools_list,
-                parallel_tool_calls=False,
+                conversation_history=conversation_history,
+                mcp_server_url=config.mcp_server_url,
+                available_functions=available_functions,
             )
 
             print(f"Response status: {response.status}")
-            
+
             # Process all outputs in the response
             for output in response.output:
                 if output.type == "function_call":
@@ -106,51 +74,57 @@ async def main() -> str:
                     function_name = output.name
                     function_to_call = available_functions[function_name]
                     function_args = json.loads(output.arguments)
-                    
+
                     # Execute the function
                     if asyncio.iscoroutinefunction(function_to_call):
                         function_response = await function_to_call(**function_args)
                     else:
                         function_response = function_to_call(**function_args)
-                    
+
                     print(f"Function {function_name} completed")
-                    
+
                     # Add function call result as text to conversation history
-                    conversation_history.append({
-                        "role": "assistant",
-                        "content": [
-                            {
-                                "type": "output_text",
-                                "text": f"I executed the function '{function_name}' and generated the fashion trends report."
-                            }
-                        ]
-                    })
-                    
+                    conversation_history.append(
+                        {
+                            "role": "assistant",
+                            "content": [
+                                {
+                                    "type": "output_text",
+                                    "text": f"I executed the function '{function_name}' and generated the fashion trends report.",
+                                }
+                            ],
+                        }
+                    )
+
                     # Store the report if it was generated
                     if function_name == "compile_trends" and function_response:
                         generated_reports.append(function_response)
                         print("Report generated and stored in context")
-                    
+
                 elif output.type == "mcp_list_tools":
                     # MCP tools are being listed
                     print("MCP tools listed")
-                    conversation_history.append({
-                        "role": "assistant",
-                        "content": [
-                            {
-                                "type": "output_text",
-                                "text": "MCP tools have been loaded and are available for use."
-                            }
-                        ]
-                    })
-                    
+                    conversation_history.append(
+                        {
+                            "role": "assistant",
+                            "content": [
+                                {
+                                    "type": "output_text",
+                                    "text": "MCP tools have been loaded and are available for use.",
+                                }
+                            ],
+                        }
+                    )
+
                 else:
                     # Regular text response or other output types
                     print(f"Assistant response: {output}")
-                    conversation_history.append({
-                        "role": "assistant", 
-                        "content": [{"type": "output_text", "text": str(output)}]
-                    })
+                    conversation_history.append(
+                        {
+                            "role": "assistant",
+                            "content": [{"type": "output_text", "text": str(output)}],
+                        }
+                    )
 
         except KeyboardInterrupt:
             print("\nSession interrupted by user")

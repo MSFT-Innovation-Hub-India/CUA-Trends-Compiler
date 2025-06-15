@@ -2,9 +2,9 @@
 import base64
 from typing import List, Dict, Any, Optional
 from openai import AzureOpenAI
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 from .config import TrendsConfig
+from .client_factory import AzureOpenAIClientFactory
 
 
 class TrendsAIClient:
@@ -17,16 +17,7 @@ class TrendsAIClient:
     
     def _create_client(self) -> AzureOpenAI:
         """Create Azure OpenAI client with proper authentication."""
-        token_provider = get_bearer_token_provider(
-            DefaultAzureCredential(), 
-            "https://cognitiveservices.azure.com/.default"
-        )
-        
-        return AzureOpenAI(
-            base_url=f"{self.config.azure_endpoint}/openai/v1/",
-            azure_ad_token_provider=token_provider,
-            api_version="preview",
-        )
+        return AzureOpenAIClientFactory.create_client(self.config)
     
     def _create_tools(self) -> List[Dict[str, Any]]:
         """Create tools configuration for computer use."""
@@ -46,13 +37,12 @@ class TrendsAIClient:
                 model=self.config.model_name,
                 input=messages,
                 tools=self._tools,
-                truncation="auto",
-            )
+                truncation="auto",            )
             return response
         except Exception as e:
             print(f"Error getting AI response: {e}")
             raise
-    
+
     async def get_gpt4o_response(self, messages: List[Dict[str, Any]]) -> Any:
         """Get response from Azure OpenAI GPT-4o model for image analysis."""
         try:
@@ -63,6 +53,21 @@ class TrendsAIClient:
             return response
         except Exception as e:
             print(f"Error getting GPT-4o response: {e}")
+            raise
+
+    def create_response_with_tools(self, model: str, instructions: str, input_messages: List[Dict[str, Any]], tools: List[Dict[str, Any]], parallel_tool_calls: bool = False) -> Any:
+        """Create response with custom tools (for MCP and function calls)."""
+        try:
+            response = self._client.responses.create(
+                model=model,
+                instructions=instructions,
+                input=input_messages,
+                tools=tools,
+                parallel_tool_calls=parallel_tool_calls,
+            )
+            return response
+        except Exception as e:
+            print(f"Error creating response with tools: {e}")
             raise
 
     def create_message(self, text: str, screenshot_base64: Optional[str] = None) -> Dict[str, Any]:
