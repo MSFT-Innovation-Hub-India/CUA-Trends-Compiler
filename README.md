@@ -334,6 +334,18 @@ Generated reports follow this comprehensive structure:
 [Overall insights and patterns across all analyzed items]
 ```
 
+
+
+
+## 🎥 Demo Video
+
+[![Fashion Trends Compiler Agent Demo](https://img.youtube.com/vi/xSu8G9r8Z3c/maxresdefault.jpg)](https://youtu.be/xSu8G9r8Z3c)
+
+*Click the image above to watch a complete demonstration of the Fashion Trends Compiler Agent in action*
+
+
+
+
 ## 🔧 Advanced Configuration
 
 ### Browser Automation Settings
