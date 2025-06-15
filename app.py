@@ -88,92 +88,69 @@ async def main() -> str:
             print(f"Conversation history length: {len(conversation_history)}")
             print(f"Generated reports count: {len(generated_reports)}")
             
-            # Continue conversation until we get a complete response (not just function calls)
-            while True:
-                # Call the Responses API with the current state
-                response = client.responses.create(
-                    model=vision_model_name,
-                    instructions=instructions,
-                    input=conversation_history,
-                    tools=tools_list,
-                    parallel_tool_calls=False,
-                )
+            # Call the Responses API with the current state
+            response = client.responses.create(
+                model=vision_model_name,
+                instructions=instructions,
+                input=conversation_history,
+                tools=tools_list,
+                parallel_tool_calls=False,
+            )
 
-                print(f"Response status: {response.status}")                
-                # Process all outputs in the response
-                for output in response.output:
-                    if output.type == "function_call":
-                        print(f"Function call: {output.name}")
-                        function_name = output.name
-                        function_to_call = available_functions[function_name]
-                        function_args = json.loads(output.arguments)
-                        
-                        # Execute the function
-                        if asyncio.iscoroutinefunction(function_to_call):
-                            function_response = await function_to_call(**function_args)
-                        else:
-                            function_response = function_to_call(**function_args)
-                        
-                        print(f"Function {function_name} completed")
-                        
-                        # Add function call result as text to conversation history
-                        # Since Responses API doesn't support function_call content type in input,
-                        # we'll represent the function execution as text
-                        conversation_history.append({
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "output_text",
-                                    "text": f"I executed the function '{function_name}' with arguments: {output.arguments}"
-                                }
-                            ]
-                        })
-                        
-                        # Add function result as text
-                        conversation_history.append({
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "output_text",
-                                    "text": f"Function result: {str(function_response)}"
-                                }
-                            ]
-                        })
-                        
-                        # Store the report if it was generated
-                        if function_name == "compile_trends" and function_response:
-                            generated_reports.append(function_response)
-                            print("Report generated and stored in context")
-                        
-                    elif output.type == "mcp_list_tools":
-                        # MCP tools are being listed, continue the conversation
-                        print("MCP tools listed")
-                        conversation_history.append({
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "output_text",
-                                    "text": "MCP tools have been loaded and are available for use."
-                                }
-                            ]
-                        })
-                        
+            print(f"Response status: {response.status}")
+            
+            # Process all outputs in the response
+            for output in response.output:
+                if output.type == "function_call":
+                    print(f"Function call: {output.name}")
+                    function_name = output.name
+                    function_to_call = available_functions[function_name]
+                    function_args = json.loads(output.arguments)
+                    
+                    # Execute the function
+                    if asyncio.iscoroutinefunction(function_to_call):
+                        function_response = await function_to_call(**function_args)
                     else:
-                        # Regular text response or other output types
-                        print(f"Assistant response: {output}")
-                        conversation_history.append({
-                            "role": "assistant", 
-                            "content": [{"type": "output_text", "text": str(output)}]
-                        })
-                        
-                        # If we got a text response, break out of the inner loop
-                        # This means the assistant has provided a complete response
-                        if hasattr(output, 'text') or output.type == "text":
-                            break
-                
-                # If the response is completed and doesn't contain only function calls, break
-                if response.status == "completed" and not all(output.type == "function_call" for output in response.output):
-                    break
+                        function_response = function_to_call(**function_args)
+                    
+                    print(f"Function {function_name} completed")
+                    
+                    # Add function call result as text to conversation history
+                    conversation_history.append({
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": f"I executed the function '{function_name}' and generated the fashion trends report."
+                            }
+                        ]
+                    })
+                    
+                    # Store the report if it was generated
+                    if function_name == "compile_trends" and function_response:
+                        generated_reports.append(function_response)
+                        print("Report generated and stored in context")
+                    
+                elif output.type == "mcp_list_tools":
+                    # MCP tools are being listed
+                    print("MCP tools listed")
+                    conversation_history.append({
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "MCP tools have been loaded and are available for use."
+                            }
+                        ]
+                    })
+                    
+                else:
+                    # Regular text response or other output types
+                    print(f"Assistant response: {output}")
+                    conversation_history.append({
+                        "role": "assistant", 
+                        "content": [{"type": "output_text", "text": str(output)}]
+                    })
 
         except KeyboardInterrupt:
             print("\nSession interrupted by user")
