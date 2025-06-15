@@ -23,9 +23,9 @@ class TrendsAIClient:
         )
         
         return AzureOpenAI(
-            azure_endpoint=self.config.azure_endpoint,
+            base_url=f"{self.config.azure_endpoint}/openai/v1/",
             azure_ad_token_provider=token_provider,
-            api_version=self.config.api_version,
+            api_version="preview",
         )
     
     def _create_tools(self) -> List[Dict[str, Any]]:
@@ -53,6 +53,18 @@ class TrendsAIClient:
             print(f"Error getting AI response: {e}")
             raise
     
+    async def get_gpt4o_response(self, messages: List[Dict[str, Any]]) -> Any:
+        """Get response from Azure OpenAI GPT-4o model for image analysis."""
+        try:
+            response = self._client.responses.create(
+                model="gpt-4o",
+                input=messages
+            )
+            return response
+        except Exception as e:
+            print(f"Error getting GPT-4o response: {e}")
+            raise
+
     def create_message(self, text: str, screenshot_base64: Optional[str] = None) -> Dict[str, Any]:
         """Create a properly formatted message for the AI."""
         content = [{"type": "input_text", "text": text}]

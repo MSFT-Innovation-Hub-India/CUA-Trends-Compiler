@@ -4,7 +4,7 @@ import sys
 from call_computer_use import compile_trends
 
 
-async def main():
+async def main() -> str:
     """Main entry point for the application."""
 
     user_query = "get me the latest trends in men's sports wear"
@@ -13,13 +13,19 @@ async def main():
         print(f"=== Trend Search Computer Use Agent ===")
         print(f"Query: {user_query}")
         print(f"Starting browser automation...")
-        
-        # Run the computer use agent
-        conversation_history = await compile_trends(user_query)
+          # Run the computer use agent
+        markdown_report = await compile_trends(user_query)
 
         print("\n=== Session Summary ===")
-        print(f"Total messages in conversation: {len(conversation_history)}")
-        print("Trend search completed!")
+        if markdown_report:
+            print("Trends analysis completed successfully!")
+            print(f"Report length: {len(markdown_report)} characters")
+            print("\n=== Generated Trends Report ===")
+            print(markdown_report)
+        else:
+            print("No trends report generated.")
+        
+        return markdown_report
         
     except KeyboardInterrupt:
         print("\nSession interrupted by user")

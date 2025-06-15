@@ -15,7 +15,7 @@ def acknowledge_safety_check_callback(message: str) -> bool:
     return response.strip() == "y"
 
 
-async def compile_trends(user_query: str):
+async def compile_trends(user_query: str) -> str:
     """
     Main entry point for trends compilation.
     
@@ -23,7 +23,7 @@ async def compile_trends(user_query: str):
         user_query: The search query for trends analysis
         
     Returns:
-        List of conversation history items
+        Compiled markdown report of the trends analysis
     """
     # Load and validate configuration
     config = TrendsConfig.from_env()
